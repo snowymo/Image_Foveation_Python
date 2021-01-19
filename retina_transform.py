@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import sys
-
+import glob
 
 def genGaussiankernel(width, sigma):
     x = np.arange(-int(width/2), int(width/2)+1, 1, dtype=np.float32)
@@ -40,7 +40,7 @@ def pyramid(im, sigma=1, prNum=6):
 
     return pyramids
 
-def foveat_img(im, fixs):
+def foveat_img(im, fixs, p=7.5, k=3.0):
     """
     im: input image
     fixs: sequences of fixations of form [(x1, y1), (x2, y2), ...]
@@ -53,8 +53,6 @@ def foveat_img(im, fixs):
     height, width, _ = im.shape
     
     # compute coef
-    p = 7.5
-    k = 3
     alpha = 2.5
 
     x = np.arange(0, width, 1, dtype=np.float32)
@@ -119,11 +117,24 @@ if __name__ == "__main__":
         print("Wrong format: python retina_transform.py [image_path]")
         exit(-1)
 
-    im_path = sys.argv[1]
-    im = cv2.imread(im_path)
-    # im = cv2.resize(im, (512, 320), cv2.INTER_CUBIC)
-    xc, yc = int(im.shape[1]/2), int(im.shape[0]/2)
+    p=7.5
+    k=3.0
+    if sys.argv[1].endswith("png"):
+        im_path = sys.argv[1]
+        im = cv2.imread(im_path)
+        # im = cv2.resize(im, (512, 320), cv2.INTER_CUBIC)
+        xc, yc = int(im.shape[1]/2), int(im.shape[0]/2)
 
-    im = foveat_img(im, [(xc, yc)])
+        im = foveat_img(im, [(xc, yc)])
 
-    cv2.imwrite(im_path.split('.')[0]+'_RT.jpg', im)
+        cv2.imwrite(im_path.split('.')[0]+'_RT_k6.jpg', im)
+    else:
+        # folder
+        for filename in glob.glob(sys.argv[1] + '/*.png'):  # assuming png
+            if "RT" not in filename:
+                im = cv2.imread(filename)
+                # im = cv2.resize(im, (512, 320), cv2.INTER_CUBIC)
+                # gaze
+                xc, yc = int(im.shape[1] / 2), int(im.shape[0] / 2)
+                im = foveat_img(im, [(xc, yc)],p,k)
+                cv2.imwrite(filename.split('.')[0] + '_RT_k'+str(k) +'.png', im)
